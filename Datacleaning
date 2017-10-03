@@ -1,0 +1,22 @@
+
+select t.BONUS, t.BONUS2, t.CREDIT1
+from VMS_DUMP_BUNDLE_201701 t
+union all
+select t.BONUS, t.BONUS2, t.CREDIT1
+from VMS_DUMP_BUNDLE_201702 t
+union all
+select t.BONUS, t.BONUS2, t.CREDIT1
+from VMS_DUMP_BUNDLE_201703 t
+union all
+select t.BONUS, t.BONUS2, t.CREDIT1
+from VMS_DUMP_BUNDLE_201704 t
+
+select icc.isdn , (USED_DURATION) as SUM_USED_DURATION ,
+ nvl(icc.REVENUE_MAIN, 0) as REVENUE_MAIN, dk.CODE, dk.REG_DATETIME, dk.END_DATETIME
+from vms_icc_meta icc
+inner join CDRVMS_ADMIN.VMS_VASPRO_DEL dk on dk.ISDN = icc.ISDN
+where dk.REG_DATETIME >= '2016-10-01' and dk.REG_DATETIME < '2017-01-01'
+and (icc.CALL_STA_TIME >= dk.REG_DATETIME and icc.CALL_STA_TIME <= dk.END_DATETIME)
+and dk.CODE in ('MIU', 'M10', 'M25', 'MIU90', 'MIU2GB', 'M70', 'M50', 'M120', 'M90', 'M200') 
+and icc.TRANS_TYPE = 'DATA' and event_type_name like '%GPRS%'
+
