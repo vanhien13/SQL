@@ -1,0 +1,270 @@
+select *
+from 
+	(select ISDN
+	from
+	(SELECT MID, Cast(SUM(REVENUE_SMS)as INT) AS SMS,Cast(SUM(REVENUE_VAS)as INT) AS VAS ,Cast(SUM(REVENUE_DATA)as INT) AS DATA,Cast(SUM(REVENUE_TOTAL)as INT) AS TOTAL 
+	FROM   CDRVMS_ADMIN.VMS_DAILY_REVENUE_042016
+	GROUP BY MID) b
+
+	full outer join
+	(select ISDN
+	FROM CDRVMS.CDRVMS_ADMIN.VMS_VASPRO_DK d
+	where d.GROUP_CODE in ('DATA', 'DATA_ADDON', 'DATASS','YOUTYBE','FACEBOOK','FC') AND  EXTRACT(YEAR FROM d.REG_DATETIME) = 2016 AND EXTRACT(MONTH FROM d.REG_DATETIME) = 4
+	group by EXTRACT(YEAR FROM d.REG_DATETIME),  EXTRACT(MONTH FROM d.REG_DATETIME), ISDN) c
+	on c.ISDN = b.MID) a
+	inner join
+	(SELECT OS_INFORMATION, BRAND,MODEL,TYPE,substr(ISDN,2,length(ISDN)) AS MID
+	FROM CDRVMS.CDRVMS_ADMIN.ADC_201604
+	WHERE OS_INFORMATION != 'Feature Phone') u
+	on u.MID = a.ISDN
+
+SELECT EVENT_TYPE_NAME, COUNT(EVENT_TYPE_NAME), SUM(USED_DURATION), SUM(USED_DURATION) /COUNT(EVENT_TYPE_NAME) AS avr
+  FROM CDRVMS.CDRVMS_ADMIN.VMS_CDRICC_201604
+ WHERE substr(EVENT_TYPE_NAME,1,4) = 'GPRS'
+ GROUP BY EVENT_TYPE_NAME
+	
+	
+SELECT *
+FROM (SELECT *
+	FROM (SELECT OS_INFORMATION, BRAND,MODEL,TYPE,substr(ISDN,2,length(ISDN)) AS ISDN1
+		FROM CDRVMS.CDRVMS_ADMIN.ADC_201604
+		WHERE OS_INFORMATION = 'Feature Phone') Z
+		INNER JOIN
+		(SELECT ISDN , PROVINCE_CODE
+		FROM CDRVMS.VUNGO.VMS_SUB_PSC
+ 		where MONTH_CHECK = 201604
+		GROUP BY PROVINCE_CODE, ISDN) S
+		ON Z.ISDN1 = S.ISDN) A
+	left JOIN
+	(select CALLING_ISDN
+		FROM CDRVMS_ADMIN.VMS_CDRICC_201604
+		WHERE substr(EVENT_TYPE_NAME,1,4) = 'GPRS'
+		GROUP BY CALLING_ISDN) B
+	ON  A.ISDN = B.CALLING_ISDN	
+	where b.CALLING_ISDN is NULL
+SELECT EXTRACT(MONTH FROM DATE_CHURN), EXTRACT(YEAR FROM DATE_CHURN)
+  FROM CDRVMS.CDRVMS_ADMIN.VMS_CHURNER_2017
+group by EXTRACT(MONTH FROM DATE_CHURN), EXTRACT(YEAR FROM DATE_CHURN)
+
+
+select ISDN1,T11,T12,T1,T2,T3,T4
+from 	(SELECT ISDN AS ISDN1, OS_INFORMATION AS T11
+FROM CDRVMS_ADMIN.ADC_201511) A
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T12
+FROM CDRVMS_ADMIN.ADC_201512) B
+ON A.ISDN1 = B.ISDN
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T1
+FROM CDRVMS_ADMIN.ADC_201601) C
+ON B.ISDN = C.ISDN
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T2
+FROM CDRVMS_ADMIN.ADC_201602) D
+ON C.ISDN = D.ISDN
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T3
+FROM CDRVMS_ADMIN.ADC_201603) E
+ON D.ISDN = E.ISDN
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T4
+FROM CDRVMS_ADMIN.ADC_201604) F
+ON E.ISDN = F.ISDN
+	
+
+SELECT CS, COUNT(CS)
+FROM(SELECT ISDN1,
+CASE
+WHEN T11 != T12 and T12 = T1 AND T1=T2 AND T2=T3 and T3=T4  THEN 1
+WHEN T11 = T12 and T12 != T1 AND T1=T2 AND T2=T3 and T3=T4  THEN 1
+WHEN T11 = T12 and T12 = T1 AND T1!=T2 AND T2=T3 and T3=T4  THEN 1
+WHEN T11 = T12 and T12 = T1 AND T1=T2 AND T2!=T3 and T3=T4  THEN 1
+WHEN T11 = T12 and T12 = T1 AND T1=T2 AND T2=T3 and T3!=T4  THEN 1
+
+WHEN T11 != T12 and T12 != T1 AND T1=T2 AND T2=T3 and T3=T4  THEN 2
+WHEN T11 != T12 and T12 = T1 AND T1!=T2 AND T2=T3 and T3=T4  THEN 2
+WHEN T11 != T12 and T12 = T1 AND T1=T2 AND T2!=T3 and T3=T4  THEN 2
+WHEN T11 != T12 and T12 = T1 AND T1=T2 AND T2=T3 and T3!=T4  THEN 2
+
+WHEN T11 = T12 and T12 != T1 AND T1!=T2 AND T2=T3 and T3=T4  THEN 2
+WHEN T11 = T12 and T12 != T1 AND T1=T2 AND T2!=T3 and T3=T4  THEN 2
+WHEN T11 = T12 and T12 != T1 AND T1=T2 AND T2=T3 and T3!=T4  THEN 2
+
+WHEN T11 = T12 and T12 = T1 AND T1!=T2 AND T2!=T3 and T3=T4  THEN 2
+WHEN T11 = T12 and T12 = T1 AND T1!=T2 AND T2=T3 and T3!=T4  THEN 2
+
+WHEN T11 = T12 and T12 = T1 AND T1=T2 AND T2!=T3 and T3!=T4  THEN 2
+
+WHEN T11 != T12 and T12 != T1 AND T1!=T2 AND T2=T3 and T3=T4  THEN 3
+WHEN T11 != T12 and T12 != T1 AND T1=T2 AND T2!=T3 and T3=T4  THEN 3
+WHEN T11 != T12 and T12 != T1 AND T1=T2 AND T2=T3 and T3!=T4  THEN 3
+
+WHEN T11 != T12 and T12 = T1 AND T1!=T2 AND T2!=T3 and T3=T4  THEN 3
+WHEN T11 != T12 and T12 = T1 AND T1!=T2 AND T2=T3 and T3!=T4  THEN 3
+
+WHEN T11 != T12 and T12 = T1 AND T1=T2 AND T2!=T3 and T3!=T4  THEN 3
+
+WHEN T11 = T12 and T12 != T1 AND T1!=T2 AND T2!=T3 and T3=T4  THEN 3
+WHEN T11 = T12 and T12 != T1 AND T1!=T2 AND T2=T3 and T3!=T4  THEN 3
+
+WHEN T11 = T12 and T12 = T1 AND T1!=T2 AND T2!=T3 and T3!=T4  THEN 3
+
+WHEN T11 != T12 and T12 = T1 AND T1!=T2 AND T2!=T3 and T3!=T4  THEN 4
+WHEN T11 = T12 and T12 != T1 AND T1!=T2 AND T2!=T3 and T3!=T4  THEN 4
+WHEN T11 != T12 and T12 != T1 AND T1!=T2 AND T2!=T3 and T3=T4  THEN 4
+
+WHEN T11 != T12 and T12 != T1 AND T1!=T2 AND T2!=T3 and T3!=T4  THEN 5
+
+ELSE 0
+END AS CS
+
+FROM(SELECT ISDN1,T11,T12,T1,T2,T3,T4
+FROM 
+(select ISDN1,T11,T12,T1,T2,T3,T4
+from 	(SELECT ISDN AS ISDN1, OS_INFORMATION AS T11
+FROM CDRVMS_ADMIN.ADC_201511) A
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T12
+FROM CDRVMS_ADMIN.ADC_201512) B
+ON A.ISDN1 = B.ISDN
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T1
+FROM CDRVMS_ADMIN.ADC_201601) C
+ON B.ISDN = C.ISDN
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T2
+FROM CDRVMS_ADMIN.ADC_201602) D
+ON C.ISDN = D.ISDN
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T3
+FROM CDRVMS_ADMIN.ADC_201603) E
+ON D.ISDN = E.ISDN
+INNER JOIN
+	(SELECT ISDN, OS_INFORMATION AS T4
+FROM CDRVMS_ADMIN.ADC_201604) F
+ON E.ISDN = F.ISDN) Y
+LEFT JOIN 
+	(SELECT MID
+ 	FROM CDRVMS.CDRVMS_ADMIN.VMS_CHURNER_2017
+	where  EXTRACT(YEAR FROM DATE_CHURN) = 2016 and  EXTRACT(MONTH FROM DATE_CHURN) < 5) X
+	ON Y.ISDN1 = X.MID
+	WHERE X.MID IS NULL) Z
+	) P
+	
+GROUP BY CS
+
+SELECT MID, DV, SUM(DURATION) AS DURATION, CELL_ID, EX_TIME
+FROM( SELECT MID,
+	CASE
+WHEN DURATION = 0 THEN 1
+else DURATION  END AS DURATION,CELL_ID,
+	CASE
+    WHEN cast(CALL_STA_TIME as time) >= '06:00:00' and cast(CALL_STA_TIME as time) < '07:30:00' then 'BREAKFAST'
+    WHEN cast(CALL_STA_TIME as time) >= '07:30:00' and cast(CALL_STA_TIME as time) < '11:30:00' then 'MORNING_WORK'
+    WHEN cast(CALL_STA_TIME as time) >= '17:30:00' and cast(CALL_STA_TIME as time) < '13:30:00' then 'LUNCH'
+    WHEN cast(CALL_STA_TIME as time) >= '13:30:00' and cast(CALL_STA_TIME as time) < '17:30:00' then 'AFTERNOON'
+    WHEN cast(CALL_STA_TIME as time) >= '17:30:00' and cast(CALL_STA_TIME as time) < '20:00:00' then 'DINNER'
+    WHEN cast(CALL_STA_TIME as time) >= '20:00:00' and cast(CALL_STA_TIME as time) < '22:00:00' then 'RELAX'
+    else  'NIGHT' 
+ END EX_TIME,
+ CALL_STA_TIME,
+	CASE
+WHEN CALL_TYPE IN ('RM','IC','OG')THEN 'VOICE'
+else 'SMS' 
+end AS DV
+  FROM CDRVMS.CDRVMS_ADMIN.VMS_VSR_201701
+) Z
+GROUP BY  MID, DV, CELL_ID, EX_TIME
+ORDER BY MID
+
+
+
+  
+
+
+select MID,CELL_ID,KEY_WORD,sum(DURATION) AS DURATION
+from (SELECT MID, DURATION ,CELL_ID,  DV ||'_' ||  WEEK_  ||'_' ||  EX_TIME as KEY_WORD
+FROM(SELECT MID,
+	CASE
+	WHEN CALL_TYPE IN ('RM','IC','OG')THEN 'VOICE'
+	else 'SMS' 
+	end AS DV,
+	CASE
+    WHEN cast(CALL_STA_TIME as time) >= '06:00:00' and cast(CALL_STA_TIME as time) < '07:30:00' then 'BREAKFAST'
+    WHEN cast(CALL_STA_TIME as time) >= '07:30:00' and cast(CALL_STA_TIME as time) < '11:30:00' then 'MORNING_WORK'
+    WHEN cast(CALL_STA_TIME as time) >= '17:30:00' and cast(CALL_STA_TIME as time) < '13:30:00' then 'LUNCH'
+    WHEN cast(CALL_STA_TIME as time) >= '13:30:00' and cast(CALL_STA_TIME as time) < '17:30:00' then 'AFTERNOON'
+    WHEN cast(CALL_STA_TIME as time) >= '17:30:00' and cast(CALL_STA_TIME as time) < '20:00:00' then 'DINNER'
+    WHEN cast(CALL_STA_TIME as time) >= '20:00:00' and cast(CALL_STA_TIME as time) < '22:00:00' then 'RELAX'
+    else  'NIGHT' 
+ END EX_TIME,
+ CASE 
+ WHEN extract(dow from CALL_STA_TIME) = 1 OR extract(dow from CALL_STA_TIME) = 7 THEN 'WK'
+ ELSE 'WD' end  as WEEK_,
+	
+	CASE
+WHEN DURATION = 0 THEN 1
+else DURATION  END AS DURATION,CELL_ID
+  FROM CDRVMS.CDRVMS_ADMIN.VMS_VSR_201701
+  
+  union all
+   SELECT ISDN AS MID,
+	TRANS_TYPE AS DV,
+	EX_TIME,
+ DATE_OF_WEEK  as WEEK_,
+	
+USED_DURATION AS DURATION,CELL_ID
+  FROM VMS_ICC_META 
+) Z
+
+) W
+
+group by MID,CELL_ID,KEY_WORD
+
+
+SELECT province, province_name,
+case
+when province_name in ('Lai Châu', 'Ði?n Biên', 'Son La', 'Hòa Bình', 'Cao B?ng', 'L?ng Son', 
+'B?c Giang','Thái Nguyên', 'B?c C?n', 'Hà Giang', 'Tuyên Quang', 'Phú Th?', 'Lào Cai', 'Yên Bái', 'Qu?ng Ninh' ) then 1
+
+when province_name in ('Hà N?i', 'H?i Phòng', 'B?c Ninh', 'H?i Duong', 'Hung Yên', 'Ninh Bình', 'Thái Bình', 'Hà Nam', 'Nam Ð?nh', 'Vinh Phúc') then 2
+
+when province_name in ('Thanh Hóa', 'Ngh? An', 'Hà Tinh', 'Qu?ng Bình', 'Qu?ng Tr?', 'Th?a Thiên Hu?', 'Ðà N?ng', 'Qu?ng Nam', 
+'Qu?ng Ngãi', 'Bình Ð?nh', 'Phú Yên', 'Khánh Hòa', 'Ninh Thu?n', 'Bình Thu?n') then 3
+
+when province_name in('Kon Tum', 'Gia Lai', 'Ð?k L?k', 'Ð?c Nông', 'Lâm Ð?ng') then 4
+
+when province_name in('TP. H? Chí Minh', 'Tây Ninh', 'Bình Phu?c', 'Bình Duong', 'Ð?ng Nai', 'Bà R?a - Vung Tàu') then 5
+ELSE 6
+END
+  FROM CDRVMS.CDRVMS_ADMIN.VMS_MAPPING_DISTRICT
+ group by province, province_name
+ 
+
+
+select ISDN, VUNG
+from((SELECT *
+  FROM CDRVMS.VUNGO.VMS_SUB_PSC
+ where MONTH_CHECK = 201604) a
+ inner join
+ (SELECT province,
+case
+when province_name in ('Lai Châu', 'Ði?n Biên', 'Son La', 'Hòa Bình', 'Cao B?ng', 'L?ng Son', 
+'B?c Giang','Thái Nguyên', 'B?c C?n', 'Hà Giang', 'Tuyên Quang', 'Phú Th?', 'Lào Cai', 'Yên Bái', 'Qu?ng Ninh' ) then 1
+
+when province_name in ('Hà N?i', 'H?i Phòng', 'B?c Ninh', 'H?i Duong', 'Hung Yên', 'Ninh Bình', 'Thái Bình', 'Hà Nam', 'Nam Ð?nh', 'Vinh Phúc') then 2
+
+when province_name in ('Thanh Hóa', 'Ngh? An', 'Hà Tinh', 'Qu?ng Bình', 'Qu?ng Tr?', 'Th?a Thiên Hu?', 'Ðà N?ng', 'Qu?ng Nam', 
+'Qu?ng Ngãi', 'Bình Ð?nh', 'Phú Yên', 'Khánh Hòa', 'Ninh Thu?n', 'Bình Thu?n') then 3
+
+when province_name in('Kon Tum', 'Gia Lai', 'Ð?k L?k', 'Ð?c Nông', 'Lâm Ð?ng') then 4
+
+when province_name in('TP. H? Chí Minh', 'Tây Ninh', 'Bình Phu?c', 'Bình Duong', 'Ð?ng Nai', 'Bà R?a - Vung Tàu') then 5
+ELSE 6
+END AS VUNG
+  FROM CDRVMS.CDRVMS_ADMIN.VMS_MAPPING_DISTRICT
+ group by province, province_name
+ 
+) b
+on a.province_code = b.province)
+
